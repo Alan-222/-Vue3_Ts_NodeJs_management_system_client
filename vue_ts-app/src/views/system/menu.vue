@@ -68,7 +68,7 @@
       </el-table-column>
     </el-table>
 
-    <!-- dialog -->
+    <!-- 新增、编辑弹窗 -->
     <el-dialog :title="dialog.title" v-model="dialog.visible" @close="cancel" width="750px">
       <el-form ref="dataFormRef" :model="formData" :rules="rules" label-width="100px">
         <el-form-item label="父级菜单" prop="parent_id">
@@ -263,8 +263,8 @@ function resetQuery() {
 }
 
 function handleRowClick(row: any) {
+  // 点击后将获得当前行的对象
   state.currentRow = JSON.parse(JSON.stringify(row));
-  // emit('menuClick', row);
 }
 
 /**
