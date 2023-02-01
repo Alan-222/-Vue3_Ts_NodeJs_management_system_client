@@ -135,9 +135,7 @@ export const user: Module<userState, rootState> = {
     resetToken({ commit }) {
       return new Promise((resolve) => {
         commit('SET_TOKEN', '');
-        commit('SET_REFRESHTOKEN', '');
         removeToken();
-        removeRefreshToken();
         resolve(null);
       });
     }

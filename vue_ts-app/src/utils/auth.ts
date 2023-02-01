@@ -28,7 +28,7 @@ export function getRefreshToken() {
 }
 
 export function setRefreshToken(token: string) {
-  return Cookies.set(RefreshTokenKey, token, { expires: 7 });
+  return Cookies.set(RefreshTokenKey, token, { expires: 2 });
 }
 
 export function removeRefreshToken() {
