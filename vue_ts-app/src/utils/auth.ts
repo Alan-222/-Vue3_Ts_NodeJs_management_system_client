@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 // 设置token键值
-const TokenKey = 'Access-Token';
+const TokenKey = 'ACCESS-TOKEN';
 /**
  * 获取token
  */
@@ -21,7 +21,7 @@ export function removeToken() {
   return Cookies.remove(TokenKey);
 }
 // refreshToken键值
-const RefreshTokenKey = 'Refresh-Token';
+const RefreshTokenKey = 'REFRESH-TOKEN';
 
 export function getRefreshToken() {
   return Cookies.get(RefreshTokenKey);

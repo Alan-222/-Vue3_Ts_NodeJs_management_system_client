@@ -8,8 +8,10 @@ export {}
 declare module '@vue/runtime-core' {
   export interface GlobalComponents {
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElCascader: typeof import('element-plus/es')['ElCascader']
     ElCheckbox: typeof import('element-plus/es')['ElCheckbox']
     ElCol: typeof import('element-plus/es')['ElCol']
+    ElDatePicker: typeof import('element-plus/es')['ElDatePicker']
     ElDialog: typeof import('element-plus/es')['ElDialog']
     ElDivider: typeof import('element-plus/es')['ElDivider']
     ElForm: typeof import('element-plus/es')['ElForm']
@@ -32,14 +34,17 @@ declare module '@vue/runtime-core' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     ElTreeSelect: typeof import('element-plus/es')['ElTreeSelect']
+    FormItem: typeof import('./src/components/table/formItem.vue')['default']
     IconSelect: typeof import('./src/components/IconSelect/index.vue')['default']
     Layout: typeof import('./src/components/layout/index.vue')['default']
     Link: typeof import('./src/components/layout/Link.vue')['default']
     ResetPassword: typeof import('./src/components/layout/resetPassword.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    Search: typeof import('./src/components/table/search.vue')['default']
     SidebarItem: typeof import('./src/components/layout/SidebarItem.vue')['default']
     SvgIcon: typeof import('./src/components/SvgIcon/index.vue')['default']
+    Table: typeof import('./src/components/table/table.vue')['default']
     Test: typeof import('./src/components/test.vue')['default']
   }
   export interface ComponentCustomProperties {

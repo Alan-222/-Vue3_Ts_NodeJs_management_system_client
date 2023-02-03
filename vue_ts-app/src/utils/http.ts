@@ -1,32 +1,40 @@
-import Axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import Axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import router from '../router/index.js';
 import { getToken, setToken, removeToken, setRefreshToken, removeRefreshToken, getRefreshToken } from '../utils/auth';
 import { ElMessage } from 'element-plus';
-import { refreshToken } from '@/utils/api/user/user';
 import { store } from '@/store/index.js';
 
-const BASE_URL = ''; //请求接口url 如果不配置 则默认访问链接地址
-const TIME_OUT = 20000; // 接口超时时间
+type Result<T> = {
+  code: number;
+  message: string;
+  data: T;
+};
+
+const BASE_URL: string = import.meta.env.VITE_APP_BASE_API; //请求接口url 如果不配置 则默认访问链接地址
+const TIME_OUT: number = 20000; // 接口超时时间
 
 // 是否正在刷新的标记
 let isRefreshing = false;
 // 重试队列，每一项将是一个待执行的函数形式
 let requests: any[] = [];
 
-const instance: AxiosInstance = Axios.create({
+const instance = Axios.create({
   baseURL: BASE_URL,
   timeout: TIME_OUT
 });
+
 // 不需要token的接口白名单
 const whiteList = ['/user/login', '/user/checkCode', '/user/refreshToken'];
 
 // 添加请求拦截器
 instance.interceptors.request.use(
   (config: AxiosRequestConfig) => {
-    if (!whiteList.includes(config?.url)) {
-      let Token = getToken();
-      if (Token && Token.length > 0) {
-        config.headers['Authorization'] = Token;
+    if (config.url && typeof config.url == 'string') {
+      if (!whiteList.includes(config.url)) {
+        let Token = getToken();
+        if (Token && Token.length > 0) {
+          config.headers && (config.headers['Authorization'] = Token);
+        }
       }
     }
     return config;
@@ -87,14 +95,14 @@ instance.interceptors.response.use(
                   }
                 });
               })
-              .catch((error) => {
+              .catch(() => {
                 // removeToken();
                 // removeRefreshToken();
                 // // 重置token失败，跳转登录页
                 router.replace({
                   path: '/login',
                   query: {
-                    redirect: router.currentRoute.fullPath //登录成功后跳入浏览的当前页
+                    redirect: router.currentRoute.value.fullPath //登录成功后跳入浏览的当前页
                   }
                 });
               })
@@ -107,7 +115,7 @@ instance.interceptors.response.use(
               // 用函数形式将 resolve 存入，等待刷新后再执行
               requests.push((token: string) => {
                 config.baseURL = '';
-                config.headers['Authorization'] = token;
+                config.headers && (config.headers['Authorization'] = token);
                 resolve(
                   instance({
                     ...config,
@@ -132,5 +140,4 @@ instance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
 export default instance;

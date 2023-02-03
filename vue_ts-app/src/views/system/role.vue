@@ -2,64 +2,33 @@
 <template>
   <div class="content-title">用户管理</div>
   <div class="content-container">
-    <!-- 搜索表单 -->
-    <el-form ref="queryFormRef" :model="queryParams" :inline="true">
-      <el-form-item>
-        <el-button color="#3c8dbc" :icon="CirclePlus" v-hasPerm="['system:role:add']" @click="handleAdd">新增</el-button>
-        <el-button color="#3c8dbc" :icon="Remove" v-hasPerm="['system:role:del']" :disabled="multiple"
-          @click="handleDelete">批量删除</el-button>
-      </el-form-item>
-
-      <el-form-item prop="role_name" v-hasPerm="['system:role:query']">
-        <el-input v-model="queryParams.role_name" placeholder="角色名称" clearable @keyup.enter="handleQuery" />
-      </el-form-item>
-
-      <el-form-item>
-        <el-button color="#3c8dbc" :icon="Search" v-hasPerm="['system:role:query']" @click="handleQuery">搜索</el-button>
-        <el-button color="#3c8dbc" :icon="Refresh" v-hasPerm="['system:role:query']" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
-
-    <!-- 数据表格 -->
-    <el-table ref="dataTableRef" v-loading="loading" :data="roleList" @selection-change="handleSelectionChange"
-      highlight-current-row border>
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="角色名称" prop="role_name" align="center" />
-      <el-table-column label="角色描述" prop="remark" align="center" />
-
-      <el-table-column label="状态" align="center">
-        <template #default="scope">
-          <el-tag v-if="scope.row.status === 1" type="success">正常</el-tag>
-          <el-tag v-else type="info">禁用</el-tag>
-        </template>
-      </el-table-column>
-
-      <el-table-column prop="create_time" label="创建时间" align="center" />
-      <el-table-column prop="update_time" label="修改时间" align="center" />
-
-      <el-table-column label="操作" align="center">
-        <template #default="scope">
-          <el-button link type="primary" size="small" @click.stop="openRoleResourceDialog(scope.row)"
-            v-hasPerm="['system:role:edit']">
-            分配资源
-          </el-button>
-          <el-button link type="primary" size="small" circle plain @click.stop="handleUpdate(scope.row)"
-            v-hasPerm="['system:role:edit']">
-            编辑
-          </el-button>
-          <el-button link type="primary" size="small" circle plain @click.stop="handleDelete(scope.row)"
-            v-hasPerm="['system:role:del']">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 分页工具条 -->
-    <el-pagination :total="total" v-model:currentPage="queryParams.currentPage" v-model:page-size="queryParams.pageSize"
-      :page-sizes="[1, 3, 5, 10]" layout="total, sizes, prev, pager, next, jumper" @size-change="handleSizeChange"
-      @current-change="handleCurrentChange" style="margin-top: 20px;" />
-
+    <dataTable ref="dataTableRef" :requestApi="listRolePages" :tableColumn="tableColumn" :otherConfig="otherConfig"
+      :pageSizes="[1, 3, 5, 10]" :dict="dict" selection="multiple" :tableColumnConfig="tableColumnConfig"
+      :setupConfig="setupConfig" :searchConfig="searchConfig" :searchReset="searchReset"
+      :searchBtnConfig="searchBtnConfig" border>
+      <!-- 状态项插槽 -->
+      <template #status="{ row, index }">
+        <el-tag v-if="row.status === 1" type="success">启用</el-tag>
+        <el-tag v-else type="info">禁用</el-tag>
+      </template>
+      <!-- 批量操作按钮插槽 -->
+      <template #multiple-operation="{ selectionData }">
+        <el-button color="#3c8dbc" :icon="CirclePlus" v-hasPerm="['system:role:add']" @click="handleAdd">新增
+        </el-button>
+        <el-button color="#3c8dbc" :icon="Remove" @click="handleDelete(selectionData)" v-hasPerm="['system:role:del']"
+          :disabled="!selectionData.length">批量删除</el-button>
+      </template>
+      <!-- 表格操作栏按钮插槽 -->
+      <template #setup="{ row, index }">
+        <el-button link type="primary" size="small" v-hasPerm="['system:role:edit']"
+          @click.stop="openRoleResourceDialog(row)">
+          分配资源</el-button>
+        <el-button link type="primary" size="small" v-hasPerm="['system:role:edit']" @click="handleUpdate(row)">
+          编辑</el-button>
+        <el-button link type="primary" size="small" v-hasPerm="['system:role:del']" @click="handleDelete(row)">
+          删除</el-button>
+      </template>
+    </dataTable>
     <!-- 表单弹窗 -->
     <el-dialog :title="dialog.title" v-model="dialog.visible" width="500px" destroy-on-close>
       <el-form ref="dataFormRef" :model="formData" :rules="rules" label-width="100px">
@@ -96,7 +65,9 @@
               <el-divider direction="vertical" />
               <div class="node-content">
                 <el-checkbox v-for="perm in data.perms" :key="perm.value" :label="perm.value" border size="small"
-                  v-model="btnPerms[perm.value]">{{ perm.label }}</el-checkbox>
+                  v-model="btnPerms[perm.value]" @change="(val: any) => handleBtnCheckChange(val, perm)">{{
+                    perm.label
+                  }}</el-checkbox>
               </div>
             </div>
           </template>
@@ -120,6 +91,7 @@ export default {
 </script>
 
 <script setup lang="ts">
+import dataTable from "@/components/table/table.vue"
 import { nextTick, onMounted, reactive, ref, toRefs } from 'vue';
 import {
   listRolePages,
@@ -130,31 +102,80 @@ import {
   getRoleResources,
   updateRoleResource
 } from '@/utils/api/user/role';
+import { getMenuDetail } from '@/utils/api/user/menu'
 import { listMenuOptions } from '@/utils/api/user/menu';
 
-import { ElForm, ElMessage, ElMessageBox, ElTree } from 'element-plus';
+import { CheckboxValueType, ElForm, ElMessage, ElMessageBox, ElTree } from 'element-plus';
 import { Search, CirclePlus, Refresh, Remove } from '@element-plus/icons-vue';
 
 
-const queryFormRef = ref(ElForm);
+function isDOM(obj: any) {
+  if (typeof HTMLElement === 'object') {
+    return obj instanceof HTMLElement;
+  } else {
+    return obj && typeof obj === 'object' && obj.nodeType === 1 && typeof obj.nodeName === 'string';
+  }
+}
+
+/**
+ * 表格参数
+ */
+const dataTableRef = ref()
+const tableState = reactive({
+  tableColumn: [
+    { prop: 'role_id', label: '角色编号' },
+    { prop: 'role_name', label: '角色名称' },
+    { prop: 'remark', label: '角色描述' },
+    { prop: 'status', label: '状态', dictCode: 'status', slot: true },
+    { prop: 'create_time', label: '创建时间' },
+    { prop: 'update_time', label: '更新时间' },
+  ],
+  tableColumnConfig: {
+    align: "center"
+  },
+  otherConfig: {
+    list: 'rows'
+  },
+  setupConfig: {
+    fixed: "right",
+    align: "center"
+  },
+  dict: {
+    status: [
+      { code: 0, name: '停用' },
+      { code: 1, name: '启用' }
+    ]
+  },
+  searchConfig: [
+    { type: 'input', prop: 'role_name', label: "角色名称" },
+    {
+      type: 'select',
+      prop: 'status',
+      label: '状态',
+      selectList: [
+        { code: 0, name: '停用' },
+        { code: 1, name: '启用' }
+      ],
+      listLabel: 'name',
+      listValue: 'code',
+    }
+  ],
+  searchReset: {
+    role_name: undefined,
+    status: undefined
+  },
+  searchBtnConfig: {
+    color: "#3c8dbc"
+  }
+})
+const { tableColumn, tableColumnConfig, otherConfig, setupConfig, dict, searchConfig, searchReset, searchBtnConfig } = toRefs(tableState)
+
 const dataFormRef = ref(ElForm);
 const resourceRef = ref(ElTree);
 
 const state = reactive({
   loading: true,
-  // 选中ID数组
-  ids: [],
-  // 非单个禁用
-  single: true,
-  // 非多个禁用
-  multiple: true,
-  queryParams: {
-    currentPage: 1,
-    pageSize: 10,
-    role_name: undefined
-  } as RoleQueryParam,
   roleList: [] as RoleItem[],
-  total: 0,
   dialog: {
     title: '',
     visible: false
@@ -173,7 +194,7 @@ const state = reactive({
   btnPerms: {} as any,
   // 勾选的菜单ID
   checkedMenuIds: new Set([]),
-  allPermIds: [] as string[],
+  allPermIds: [] as number[],
   // 选中的角色
   checkedRole: {
     role_id: 0,
@@ -183,10 +204,7 @@ const state = reactive({
 
 const {
   loading,
-  multiple,
-  queryParams,
   roleList,
-  total,
   dialog,
   formData,
   rules,
@@ -197,40 +215,7 @@ const {
 } = toRefs(state);
 
 function handleQuery() {
-  state.loading = true;
-  listRolePages(state.queryParams).then(({ data }) => {
-    state.roleList = data.rows;
-    state.total = data.count;
-    state.loading = false;
-  });
-}
-// 每页显示条数改变 就会触发这个函数
-const handleSizeChange = (val: number) => {
-  // 保存每页显示的条数
-  queryParams.value.pageSize = val;
-  queryParams.value.currentPage = 1;
-  // 调用分页函数
-  handleQuery();
-}
-// 当前页码改变 就会触发这个函数
-const handleCurrentChange = (val: number) => {
-  // 保存当前页码
-  queryParams.value.currentPage = val;
-  // 调用分页函数
-  handleQuery();
-}
-/**
- * 查询重置
- */
-function resetQuery() {
-  queryFormRef.value.resetFields();
-  handleQuery();
-}
-
-function handleSelectionChange(selection: any) {
-  state.ids = selection.map((item: any) => item.role_id);
-  state.single = selection.length !== 1;
-  state.multiple = !selection.length;
+  dataTableRef.value.getData()
 }
 
 function handleAdd() {
@@ -245,14 +230,13 @@ function handleUpdate(row: any) {
     title: '修改角色',
     visible: true
   };
-  const roleId = row.role_id || state.ids;
+  const roleId = row.role_id;
   getRoleFormDetail(roleId).then(({ data }) => {
     state.formData = data;
   });
 }
 
 function submitFormData() {
-  loading.value = true;
   dataFormRef.value.validate((valid: any) => {
     if (valid) {
       if (state.formData.role_id) {
@@ -260,14 +244,13 @@ function submitFormData() {
           ElMessage.success('修改角色成功');
           cancel();
           handleQuery();
-          loading.value = false;
         });
       } else {
         addRole(state.formData).then(() => {
           cancel();
           ElMessage.success('新增角色成功');
           handleQuery();
-          loading.value = false;
+
         });
       }
     }
@@ -287,8 +270,13 @@ function cancel() {
 /**
  *  删除
  */
-function handleDelete(row: any) {
-  const ids = row.role_id || state.ids;
+function handleDelete(rows: RoleItem | RoleItem[]) {
+  let ids: number | number[];
+  if (Array.isArray(rows)) {
+    ids = rows.map((item) => item.role_id)
+  } else {
+    ids = rows.role_id
+  }
   ElMessageBox.confirm('确认删除已选中的数据项?', '警告', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -308,15 +296,25 @@ const handleResourceCheckChange = (
   isCheck: boolean,
   sonHasCheck: boolean
 ) => {
-  console.log('data', data);
-  console.log('isCheck', isCheck);
+  // console.log('data', data);
+  // console.log('isCheck', isCheck);
   // 当勾/反选的菜单存在按钮时，按钮的状态改成对应菜单状态
-  if (data.perms) {
-    data.perms.forEach(item => {
-      btnPerms.value[item.value] = isCheck;
-    });
+  if (isCheck === false) {
+    if (data.perms) {
+      data.perms.forEach(item => {
+        btnPerms.value[item.value] = isCheck;
+      });
+    }
   }
 };
+// 树形菜单按钮勾/反选方法
+const handleBtnCheckChange = (checked: boolean, perm: Permission) => {
+  if (checked === true) {
+    getMenuDetail(perm.value).then(({ data }) => {
+      resourceRef.value.setChecked(data.parent_id, true, false);
+    })
+  }
+}
 
 /**
  * 资源分配
@@ -339,9 +337,13 @@ function openRoleResourceDialog(row: RoleItem) {
     getRoleResources(roleId).then(({ data }) => {
       // 勾选的菜单回显
       const checkedMenuIds = data.menu_ids;
-      resourceRef.value.setCheckedKeys(checkedMenuIds);
+      // resourceRef.value.setCheckedKeys(checkedMenuIds);
 
       nextTick(() => {
+        // 勾选的菜单回显
+        checkedMenuIds.forEach((value: number) => {
+          resourceRef.value.setChecked(value, true, false)
+        })
         // 勾选的权限回显
         const rolePermIds = data.permIds;
 
@@ -361,7 +363,7 @@ function openRoleResourceDialog(row: RoleItem) {
   });
 }
 
-const filterResourcePermIds = (resources: Resource[], permIds: string[]) => {
+const filterResourcePermIds = (resources: Resource[], permIds: number[]) => {
   resources.forEach(resource => {
     if (resource.perms) {
       resource.perms.forEach(perm => {
@@ -382,7 +384,7 @@ function handleRoleResourceSubmit() {
     .getCheckedNodes(false, true)
     .map((node: any) => node.value);
 
-  const checkedPermIds = [] as string[];
+  const checkedPermIds = [] as number[];
   if (state.allPermIds) {
     state.allPermIds.forEach(permId => {
       if (btnPerms.value[permId]) {
@@ -409,10 +411,6 @@ function handleRoleResourceSubmit() {
 function cancelResourceAssign() {
   state.resourceDialogVisible = false;
 }
-
-onMounted(() => {
-  handleQuery();
-});
 </script>
 
 <style lang="scss">

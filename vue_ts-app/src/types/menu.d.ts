@@ -87,7 +87,7 @@ declare interface Resource {
   /**
    * 菜单值
    */
-  value: string;
+  value: number;
   /**
    * 菜单文本
    */
@@ -113,7 +113,7 @@ declare interface Permission {
   /**
    * 权限值
    */
-  value: string;
+  value: number;
   /**
    * 权限文本
    */
