@@ -192,6 +192,7 @@ const popoverRef = ref(ElPopover);
 const state = reactive({
   menuList: [] as MenuItem[],
   dialog: { visible: false } as Dialog,
+  menuOptions: [] as Option[],
   formData: {
     parent_id: 0,
     title: '',
@@ -214,23 +215,22 @@ const state = reactive({
       { required: true, message: '请输入组件完整路径', trigger: 'blur' }
     ]
   },
-  menuOptions: [] as Option[],
   currentRow: undefined,
   // Icon选择器显示状态
   iconSelectVisible: false,
   cacheData: {
     menuType: '',
     menuPath: ''
-  }
+  },
 });
 
 const {
   dialog,
   formData,
-  rules,
   menuOptions,
+  rules,
   iconSelectVisible,
-  cacheData
+  cacheData,
 } = toRefs(state);
 
 /**
@@ -244,11 +244,11 @@ function handleQuery() {
  * 加载菜单下拉树
  */
 async function loadMenuData() {
-  const menuOptions: any[] = [];
+  const getMenuOptions: any[] = [];
   await listMenuOptions().then(({ data }) => {
     const menuOption = { value: 0, label: '顶级菜单', children: data };
-    menuOptions.push(menuOption);
-    state.menuOptions = menuOptions;
+    getMenuOptions.push(menuOption);
+    menuOptions.value = getMenuOptions;
   });
 }
 

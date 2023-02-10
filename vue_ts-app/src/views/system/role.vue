@@ -31,26 +31,14 @@
     </dataTable>
     <!-- 表单弹窗 -->
     <el-dialog :title="dialog.title" v-model="dialog.visible" width="500px" destroy-on-close>
-      <el-form ref="dataFormRef" :model="formData" :rules="rules" label-width="100px">
-        <el-form-item label="角色名称" prop="role_name">
-          <el-input v-model="formData.role_name" placeholder="请输入角色名称" />
-        </el-form-item>
-
-        <el-form-item label="角色描述" prop="remark">
-          <el-input v-model="formData.remark" placeholder="请输入角色描述" />
-        </el-form-item>
-
-        <el-form-item label="状态">
-          <el-radio-group v-model="formData.status">
-            <el-radio :label="1">正常</el-radio>
-            <el-radio :label="0">停用</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button type="primary" @click="submitFormData">确 定</el-button>
-        <el-button @click="cancel">取 消</el-button>
-      </div>
+      <L-form v-model:formData="state.formData" :options="formOptions" label-width="80px" ref="dataFormRef">
+        <template #action="{ form, model }">
+          <div slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="submitFormData(form)">确 认</el-button>
+            <el-button @click="cancel">取 消</el-button>
+          </div>
+        </template>
+      </L-form>
     </el-dialog>
 
     <!--分配资源弹窗-->
@@ -86,13 +74,13 @@
 
 <script lang="ts">
 export default {
-  name: 'role'
+  name: 'Role'
 };
 </script>
 
 <script setup lang="ts">
 import dataTable from "@/components/table/table.vue"
-import { nextTick, onMounted, reactive, ref, toRefs } from 'vue';
+import { nextTick, reactive, ref, toRefs } from 'vue';
 import {
   listRolePages,
   updateRole,
@@ -105,17 +93,11 @@ import {
 import { getMenuDetail } from '@/utils/api/user/menu'
 import { listMenuOptions } from '@/utils/api/user/menu';
 
-import { CheckboxValueType, ElForm, ElMessage, ElMessageBox, ElTree } from 'element-plus';
+import { FormInstance, ElForm, ElMessage, ElMessageBox, ElTree } from 'element-plus';
 import { Search, CirclePlus, Refresh, Remove } from '@element-plus/icons-vue';
-
-
-function isDOM(obj: any) {
-  if (typeof HTMLElement === 'object') {
-    return obj instanceof HTMLElement;
-  } else {
-    return obj && typeof obj === 'object' && obj.nodeType === 1 && typeof obj.nodeName === 'string';
-  }
-}
+import { FormOptions } from '@/components/form/src/types/types'
+import { fromPairs } from "lodash";
+import form from "@/components/form";
 
 /**
  * 表格参数
@@ -169,8 +151,11 @@ const tableState = reactive({
   }
 })
 const { tableColumn, tableColumnConfig, otherConfig, setupConfig, dict, searchConfig, searchReset, searchBtnConfig } = toRefs(tableState)
+/**
+ * 表单参数
+ */
 
-const dataFormRef = ref(ElForm);
+const dataFormRef = ref();
 const resourceRef = ref(ElTree);
 
 const state = reactive({
@@ -199,7 +184,68 @@ const state = reactive({
   checkedRole: {
     role_id: 0,
     role_name: ''
-  }
+  },
+  formOptions: [
+    {
+      type: 'input',
+      value: '',
+      label: '角色名称',
+      prop: 'role_name',
+      placeholder: "请输入角色名称",
+      rules: [
+        {
+          required: true,
+          message: '角色名称不能为空',
+          trigger: 'blur'
+        },
+        {
+          min: 2,
+          max: 6,
+          message: '角色名称位数应在2-6之间',
+          trigger: 'blur'
+        }
+      ]
+    },
+    {
+      type: 'input',
+      value: '',
+      label: '角色描述',
+      placeholder: "请输入角色描述",
+      prop: 'remark',
+      rules: [
+        {
+          required: true,
+          message: '角色描述不能为空',
+          trigger: 'blur'
+        }
+      ]
+    },
+    {
+      type: 'radio-group',
+      value: 1,
+      prop: 'status',
+      label: '状态',
+      rules: [
+        {
+          required: true,
+          message: '状态值不能为空',
+          trigger: 'change'
+        }
+      ],
+      children: [
+        {
+          type: 'radio',
+          label: '正常',
+          value: 1
+        },
+        {
+          type: 'radio',
+          label: "停用",
+          value: 0
+        }
+      ]
+    },
+  ]
 });
 
 const {
@@ -207,15 +253,23 @@ const {
   roleList,
   dialog,
   formData,
-  rules,
   resourceDialogVisible,
   checkedRole,
   resourceOptions,
-  btnPerms
+  btnPerms,
+  formOptions
 } = toRefs(state);
 
 function handleQuery() {
   dataTableRef.value.getData()
+}
+
+function resetForm() {
+  formData.value.role_id = 0
+  formData.value.role_name = ''
+  formData.value.remark = ''
+  formData.value.status = 1
+  dataFormRef.value.resetFields()
 }
 
 function handleAdd() {
@@ -232,15 +286,20 @@ function handleUpdate(row: any) {
   };
   const roleId = row.role_id;
   getRoleFormDetail(roleId).then(({ data }) => {
-    state.formData = data;
+    nextTick(() => {
+      state.formData = data;
+    })
+
   });
 }
 
-function submitFormData() {
-  dataFormRef.value.validate((valid: any) => {
+function submitFormData(form: any) {
+  let validate = form.validate
+  validate((valid: any) => {
     if (valid) {
+
       if (state.formData.role_id) {
-        updateRole(state.formData.role_id as any, state.formData).then(() => {
+        updateRole(state.formData.role_id as number, state.formData).then(() => {
           ElMessage.success('修改角色成功');
           cancel();
           handleQuery();
@@ -253,6 +312,8 @@ function submitFormData() {
 
         });
       }
+    } else {
+      ElMessage.error('验证失败')
     }
   });
 }
@@ -261,10 +322,8 @@ function submitFormData() {
  * 取消
  */
 function cancel() {
+  resetForm()
   dialog.value.visible = false;
-  formData.value.role_id = undefined;
-  dataFormRef.value.resetFields();
-  dataFormRef.value.clearValidate();
 }
 
 /**

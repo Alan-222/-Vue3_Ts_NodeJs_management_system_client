@@ -11,6 +11,7 @@ declare interface RoleQueryParam {
  * 角色分页列表项
  */
 declare interface RoleItem {
+  type?: string;
   role_id: number;
   role_name: string;
   remark: string;

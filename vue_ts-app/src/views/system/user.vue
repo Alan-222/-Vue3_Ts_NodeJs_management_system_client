@@ -32,37 +32,16 @@
     <!-- 新增、编辑、详情弹窗 -->
     <el-dialog v-model="dialogFormVisible" :title="title" width="25%">
       <!-- 新增及编辑弹窗表单 -->
-      <el-form :model="form" ref="editFormRef" :rules="rules" label-width="6em">
-        <el-form-item v-if="form.action !== 'edit-pwd'" label="用户帐号" prop="username">
-          <el-input v-model="form.username" placeholder="请输入帐号" />
-        </el-form-item>
-        <el-form-item v-if="form.action === 'edit-pwd'" label="原密码" prop="old_password">
-          <el-input v-model="form.old_password" type="password" placeholder="请输入原用户密码" />
-        </el-form-item>
-        <el-form-item v-if="!form.user_id || form.action === 'edit-pwd'" label="用户密码" prop="password">
-          <el-input v-model="form.password" type="password" placeholder="请输入用户密码" />
-        </el-form-item>
-        <el-form-item v-if="!form.user_id || form.action === 'edit-pwd'" label="确认密码" prop="repassword">
-          <el-input v-model="form.repassword" type="password" placeholder="请再次输入用户密码" />
-        </el-form-item>
-        <el-form-item v-if="form.action !== 'edit-pwd'" label="角色" prop="role_ids"
-          :rules="{ required: true, message: '请选择角色', trigger: 'change', type: 'array' }">
-          <el-select v-model="form.role_ids" multiple placeholder="请选择角色">
-            <el-option v-for="item in roles" :key="item.role_id" :label="item.role_name" :value="item.role_id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item v-if="form.action !== 'edit-pwd'" label="状态" prop="status">
-          <el-radio-group v-model="form.status">
-            <el-radio :label="1">开启</el-radio>
-            <el-radio :label="0">停用</el-radio>
-          </el-radio-group>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="dialogClose(editFormRef)">取消</el-button>
-        <el-button type="primary" @click="submitForm(editFormRef)" :loading="buttonLoading">保存
-        </el-button>
-      </div>
+      <L-form v-model:formData="form" :options="formOptions" :formConfig="formConfig" label-width="6em"
+        ref="editFormRef">
+        <template #action="{ form, model }">
+          <div slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="submitForm(form)" :loading="buttonLoading">保存</el-button>
+            <el-button @click="dialogClose">取消</el-button>
+          </div>
+        </template>
+      </L-form>
+
     </el-dialog>
   </div>
 
@@ -75,7 +54,7 @@ export default { name: 'User' };
 <script setup lang="ts">
 import dataTable from '@/components/table/table.vue'
 import { CirclePlus, Refresh, Search, Remove } from '@element-plus/icons-vue'
-import { ref, reactive, onMounted, computed, toRefs } from 'vue'
+import { ref, reactive, onMounted, computed, toRefs, nextTick } from 'vue'
 import { ElTable, ElMessageBox, ElMessage, FormInstance } from 'element-plus'
 import { listUser, addUser, updateUser, updatePwd, delUser, getUserInfoById } from '@/utils/API/user/user'
 import { allRole } from '@/utils/API/user/role'
@@ -92,7 +71,7 @@ onMounted(() => {
  * 表格参数
  */
 const dataTableRef = ref()
-const state = reactive({
+const tableState = reactive({
   tableColumn: [
     { prop: 'user_id', label: '用户编号' },
     { prop: 'username', label: '用户账号' },
@@ -139,7 +118,7 @@ const state = reactive({
     color: "#3c8dbc"
   }
 })
-const { tableColumn, tableColumnConfig, otherConfig, setupConfig, dict, searchConfig, searchReset, searchBtnConfig } = toRefs(state)
+const { tableColumn, tableColumnConfig, otherConfig, setupConfig, dict, searchConfig, searchReset, searchBtnConfig } = toRefs(tableState)
 // 获取vuex
 const store = useStore()
 /**
@@ -154,16 +133,20 @@ let role_name = computed(() =>
 const getListUser = () => {
   dataTableRef.value.getData()
 }
+const roles = ref([] as RoleItem[])
+const getRoles = () => {
+  allRole().then(res => {
+    roles.value = res.data.map((item: RoleItem) => {
+      item.type = 'option'
+      return item
+    })
+  })
+}
 
 /**
- * 新增编辑及修改密码弹窗
+ * 弹窗参数
  */
-// 新增编辑及修改密码弹窗变量及方法
-let title = ref('')
-let dialogFormVisible = ref(false)
-const editFormRef = ref<FormInstance>()
-// 表单校验
-// 验证密码
+// 验证旧密码
 const validateOldPwd = (rule: any, value: any, callback: any) => {
   if (value === '') {
     callback(new Error('请输入原密码'))
@@ -193,16 +176,130 @@ const validateRePwd = (rule: any, value: any, callback: any) => {
     callback()
   }
 }
-const rules = reactive({
-  username: [
-    { required: true, message: '帐号不能为空', trigger: 'blur' },
-    { min: 3, max: 12, message: '帐号长度3-12之内', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9]+$/, message: '帐号只能字母数字组成', trigger: 'blur' }
-  ],
-  old_password: [{ validator: validateOldPwd, trigger: 'blur' }],
-  password: [{ validator: validatePwd, trigger: 'blur' }],
-  repassword: [{ validator: validateRePwd, trigger: 'blur' }]
+/**
+ * 新增编辑及修改密码弹窗
+ */
+// 新增编辑及修改密码弹窗变量及方法
+const state = reactive({
+  title: '' as string,
+  roles: [] as RoleItem[],
+  dialogFormVisible: false as boolean,
+  formConfig: {
+    showStatus: ''
+  },
+  formOptions: [
+    {
+      type: 'input',
+      value: '',
+      prop: 'username',
+      label: '用户账号',
+      placeholder: '请输入用户账号',
+      rules: [
+        {
+          required: true,
+          message: '用户名称不能为空',
+          trigger: 'blur'
+        },
+        { min: 3, max: 12, message: '帐号长度3-12之内', trigger: 'blur' },
+        { pattern: /^[a-zA-Z0-9]+$/, message: '帐号只能字母数字组成', trigger: 'blur' }
+      ],
+      show: ['add', 'edit']
+    },
+    {
+      type: 'select',
+      value: '',
+      label: '角色',
+      placeholder: "请选择角色",
+      prop: 'role_ids',
+      childLabel: 'role_name',
+      childValue: 'role_id',
+      children: roles,
+      rules: [
+        {
+          required: true,
+          message: '角色不能为空',
+          trigger: 'blur'
+        }
+      ],
+      attrs: {
+        multiple: true
+      },
+      show: ['add', 'edit']
+    },
+    {
+      type: 'input',
+      value: '',
+      label: "旧密码",
+      placeholder: '请输入旧密码',
+      prop: 'old_password',
+      rules: [{ validator: validateOldPwd, trigger: 'blur' }],
+      attrs: {
+        type: 'password',
+        showPassword: true,
+        clearable: true
+      },
+      show: ['edit-pwd']
+    },
+    {
+      type: 'input',
+      value: '',
+      label: "密码",
+      placeholder: '请输入密码',
+      prop: 'password',
+      rules: [{ validator: validatePwd, trigger: 'blur' }],
+      attrs: {
+        type: 'password',
+        showPassword: true,
+        clearable: true
+      },
+      show: ['add', 'edit-pwd']
+    },
+    {
+      type: 'input',
+      value: '',
+      label: "确认密码",
+      placeholder: '请输入确认密码',
+      prop: 'repassword',
+      rules: [{ validator: validateRePwd, trigger: 'blur' }],
+      attrs: {
+        type: 'password',
+        showPassword: true,
+        clearable: true
+      },
+      show: ['add', 'edit-pwd']
+    },
+    {
+      type: 'radio-group',
+      value: 0,
+      prop: 'status',
+      label: '状态',
+      rules: [
+        {
+          required: true,
+          message: '状态值不能为空',
+          trigger: 'change'
+        }
+      ],
+      children: [
+        {
+          type: 'radio',
+          label: '正常',
+          value: 1
+        },
+        {
+          type: 'radio',
+          label: "停用",
+          value: 0
+        }
+      ],
+      show: ['add', 'edit']
+    },
+  ]
 })
+const { title, dialogFormVisible, formOptions, formConfig } = toRefs(state)
+const editFormRef = ref()
+
+
 const form = reactive<userEditForm>({
   user_id: 0,
   action: '',
@@ -210,52 +307,49 @@ const form = reactive<userEditForm>({
   old_password: '',
   password: '',
   repassword: '',
-  status: 0,
+  status: 1,
   role_ids: []
 })
-const roles = ref([] as RoleItem[])
+
 const buttonLoading = ref(false)
-const getRoles = () => {
-  allRole().then(res => {
-    roles.value = res.data
-  })
+
+
+const dialogClose = () => {
+  resetFrom()
+  dialogFormVisible.value = false
 }
-const reset = () => {
-  form.user_id = 0
+
+const resetFrom = () => {
   form.action = ''
   form.username = ''
+  form.user_id = 0
   form.old_password = ''
   form.password = ''
   form.repassword = ''
-  form.status = 0
   form.role_ids = []
-}
-
-const dialogClose = (formEl: FormInstance | undefined) => {
-  dialogFormVisible.value = false
-  formEl?.resetFields()
-  reset()
+  form.status = 1
+  editFormRef.value.resetFields()
 }
 const handleAdd = () => {
   title.value = "添加用户"
-  reset()
+  state.formConfig.showStatus = 'add'
   dialogFormVisible.value = true
 }
 const handleReset = (user_id: number) => {
-  reset()
   getUserInfoById(user_id).then(res => {
     form.user_id = res.data.user_id
-    form.action = "edit-pwd"
+    state.formConfig.showStatus = 'edit-pwd'
+    form.action = 'edit-pwd'
     dialogFormVisible.value = true
     title.value = "重置密码"
   })
 }
 const handleEdit = (user_id: number) => {
-  reset()
   getUserInfoById(user_id).then(res => {
     form.user_id = res.data.user_id
     form.username = res.data.username
     form.status = res.data.status
+    state.formConfig.showStatus = 'edit'
     form.role_ids = res.data.roles.map((item: RoleItem) => {
       if (item.role_id) {
         return item.role_id
@@ -315,7 +409,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
             reLogin()
           }
           ElMessage.success("重置密码成功")
-          dialogClose(editFormRef.value)
+          dialogClose()
           // 重新获取表格数据
           getListUser()
         })
@@ -329,7 +423,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
           .then((res) => {
             ElMessage.success('修改用户成功')
             // 关闭弹窗
-            dialogClose(editFormRef.value)
+            dialogClose()
             // 重新获取表格数据
             getListUser()
           })
@@ -341,7 +435,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
           .then((res) => {
             ElMessage.success('新增用户成功')
             // 关闭弹窗
-            dialogClose(editFormRef.value)
+            dialogClose()
             // 重新获取表格数据
             getListUser()
           })

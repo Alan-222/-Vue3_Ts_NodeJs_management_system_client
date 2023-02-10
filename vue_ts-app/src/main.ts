@@ -16,6 +16,7 @@ import 'virtual:svg-icons-register';
 import * as directive from '@/directive';
 // 导入自定义组件
 import form from '@/components/form/index';
+import dialogForm from '@/components/dialogForm';
 
 const app = createApp(App);
 app.component('svg-icon', SvgIcon);
@@ -25,4 +26,4 @@ Object.keys(directive).forEach((key) => {
 });
 
 app.use(store, key);
-app.use(router).use(ElementPlus).use(form).mount('#app');
+app.use(router).use(ElementPlus).use(form).use(dialogForm).mount('#app');
