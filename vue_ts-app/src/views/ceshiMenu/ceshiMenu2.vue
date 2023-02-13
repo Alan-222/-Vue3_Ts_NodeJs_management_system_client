@@ -1,8 +1,8 @@
 <template>
   <div>
     <el-button type="primary" @click='open'>open</el-button>
-    <L-dialog-form title="编辑" v-model:visible="visible" :options="options" :on-change="handleChange"
-      :on-success="handleSuccess">
+    <L-dialog-form title="编辑" v-model:visible="visible" :options="options" :formData="formData"
+      :on-change="handleChange" :on-success="handleSuccess">
       <template #uploadArea>
         <el-button size="small" type="primary">点击上传</el-button>
       </template>
@@ -36,6 +36,20 @@ let Cancel = () => {
   console.log('取消');
   visible.value = false
 }
+
+let formData = ref({
+  username: '',
+  password: '',
+  role: '',
+  like: [],
+  gender: '',
+  pic: '',
+  area: '',
+  date: '',
+  date1: '',
+  desc: ''
+})
+
 let Confirm = (form: any) => {
   let validate = form.validate()
   let model = form.getFormData()

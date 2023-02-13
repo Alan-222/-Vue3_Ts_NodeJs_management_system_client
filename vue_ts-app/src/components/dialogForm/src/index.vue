@@ -1,9 +1,9 @@
 <template>
   <el-dialog v-model="dialogVisible" v-bind="$attrs">
     <template #default>
-      <L-form :options="options" label-width="80px" ref="form" @on-change="onChange" @before-upload="beforeUpload"
-        @on-preview="onPreview" @on-remove="onRemove" @before-remove="beforeRemove" @on-success="onSuccess"
-        @on-exceed="onExceed">
+      <L-form :options="options" :formData="formData" label-width="80px" ref="form" @on-change="onChange"
+        @before-upload="beforeUpload" @on-preview="onPreview" @on-remove="onRemove" @before-remove="beforeRemove"
+        @on-success="onSuccess" @on-exceed="onExceed">
         <template #uploadArea>
           <slot name="uploadArea"></slot>
         </template>
@@ -26,6 +26,9 @@ let props = defineProps({
   visible: {
     type: Boolean,
     defalut: false
+  },
+  formData: {
+    type: Object
   },
   // 表单的配置项
   options: {
