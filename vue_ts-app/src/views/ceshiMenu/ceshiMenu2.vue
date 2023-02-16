@@ -2,7 +2,7 @@
   <div>
     <el-button type="primary" @click='open'>open</el-button>
     <L-dialog-form title="编辑" v-model:visible="visible" :options="options" :formData="formData"
-      :on-change="handleChange" :on-success="handleSuccess">
+      :on-change="handleChange" :on-success="handleSuccess" @cancle="Cancel">
       <template #uploadArea>
         <el-button size="small" type="primary">点击上传</el-button>
       </template>
@@ -13,7 +13,7 @@
       </template>
       <template #footer="{ form }">
         <span class="dialog-footer">
-          <el-button @click="Cancel">取 消</el-button>
+          <el-button @click="Cancel(form)">取 消</el-button>
           <el-button type="primary" @click="Confirm(form)">确 认</el-button>
         </span>
       </template>
@@ -32,9 +32,10 @@ let open = () => {
 }
 
 
-let Cancel = () => {
+let Cancel = (form: any) => {
   console.log('取消');
   visible.value = false
+  form.resetFields()
 }
 
 let formData = ref({
@@ -57,14 +58,14 @@ let Confirm = (form: any) => {
     if (valid) {
       ElMessage.success('验证成功')
       console.log(model);
-      visible.value = false
+      Cancel(form)
     } else {
       ElMessage.error('验证失败')
     }
   })
 }
 
-let options: FormOptions[] = [
+let options = ref([
   {
     type: 'input',
     value: '',
@@ -128,7 +129,7 @@ let options: FormOptions[] = [
         trigger: 'change'
       }
     ],
-    children: [
+    selectList: [
       {
         type: 'option',
         label: '经理',
@@ -158,7 +159,7 @@ let options: FormOptions[] = [
         trigger: 'change'
       }
     ],
-    children: [
+    selectList: [
       {
         type: 'checkbox',
         label: '足球',
@@ -188,7 +189,7 @@ let options: FormOptions[] = [
         trigger: 'change'
       }
     ],
-    children: [
+    selectList: [
       {
         type: 'radio',
         label: '男',
@@ -236,7 +237,7 @@ let options: FormOptions[] = [
       }
     ]
   }
-]
+])
 
 let handleSuccess = (val: any) => {
   console.log('success')

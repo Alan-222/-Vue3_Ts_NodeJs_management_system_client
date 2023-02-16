@@ -1,14 +1,15 @@
 <template>
   <div>
-    <el-form ref="form" v-if="formData" :validate-on-rule-change='false' :model='formData' :rules='rules'
-      v-bind="$attrs">
+    <el-form ref="form" v-if="formData && props.options && props.options.length" :validate-on-rule-change='false'
+      :model='formData' :rules='rules' v-bind="$attrs">
       <el-row>
-        <el-col v-for="(item, index) in options" :key="index" :span="24 / item.colCount! || formConfig.colSpan || 24">
+        <el-col v-for="(item, index) in props.options" :key="index"
+          :span="24 / item.colCount! || formConfig.colSpan || 24">
           <template
-            v-if="(item.show && item.show.includes(formConfig.showStatus!)) || item.show === undefined && formConfig.showStatus === undefined">
-            <el-form-item v-if="!item.children || !item.children!.length" :prop="item.prop" :label="item.label">
+            v-if="(item.show && item.show.includes(formConfig.showStatus!)) || (item.show === undefined && formConfig.showStatus === undefined)">
+            <el-form-item v-if="!item.selectList || !item.selectList.length" :prop="item.prop" :label="item.label">
               <component v-if="item.type !== 'upload' && item.type !== 'editor'" v-bind="item.attrs"
-                :is="`el-${item.type}`" :placeholder="item.placeholder" v-model="formData[item.prop!]">
+                :is="`el-${item.type}`" :placeholder="item.placeholder" v-model="formData[item.prop]">
               </component>
               <el-upload v-if="item.type === 'upload'" v-bind="item.uploadAttrs" :on-preview="onPreview"
                 :on-remove="onRemove" :on-success="onSuccess" :on-error="onError" :on-progress="onProgress"
@@ -22,18 +23,23 @@
                 <div id="editor" v-if="item.type === 'editor'" class="editor-content editor-border"></div>
               </div>
             </el-form-item>
-            <el-form-item v-if="item.children && item.children.length" :prop="item.prop" :label="item.label">
+            <el-form-item v-if="item.selectList && item.selectList.length" :prop="item.prop" :label="item.label">
               <component v-bind="item.attrs" :is="`el-${item.type}`" :placeholder="item.placeholder"
-                v-model="formData[item.prop!]">
+                v-model="formData[item.prop]">
                 <template v-if="item.type === 'radio-group'">
-                  <component v-for="(child, i) in item.children" :key="i" :is="`el-${child.type}`"
-                    :label="child[item.childValue!]">
-                    {{ child[item.childLabel] }}
+                  <component v-for="(child, i) in item.selectList" :key="i" :is="`el-radio`"
+                    :label="child[item.listValue]">
+                    {{ child[item.listLabel] }}
+                  </component>
+                </template>
+                <template v-else-if="item.type === 'checkbox-group'">
+                  <component v-for="(child, i) in item.selectList" :key="i" :is="`el-checkbox`"
+                    :label="child[item.listLabel]" :value="child[item.listValue]">
                   </component>
                 </template>
                 <template v-else>
-                  <component v-for="(child, i) in item.children" :key="i" :is="`el-${child.type}`"
-                    :label="child[item.childLabel]" :value="child[item.childValue]">
+                  <component v-for="(child, i) in item.selectList" :key="i" :is="`el-option`"
+                    :label="child[item.listLabel]" :value="child[item.listValue]">
                   </component>
                 </template>
 
@@ -56,16 +62,20 @@ export default {
 </script>
 
 <script lang="ts" setup>
-import { PropType, ref, onMounted, nextTick, toRefs, watchEffect } from 'vue'
-import { FormOptions, FormInstance, formConfig } from './types/types'
+import { PropType, ref, onMounted, nextTick, toRefs, watch } from 'vue'
+import { FormOptions, FormInstance, formConfig, selectValue } from './types/types'
 import type { UploadProgressEvent, UploadFile, UploadRawFile, UploadFiles, UploadRequestHandler, UploadUserFile } from 'element-plus'
 import { deepClone } from './utils/tools';
 import '@wangeditor/editor/dist/css/style.css'
 import { createEditor, createToolbar, IEditorConfig, IDomEditor } from '@wangeditor/editor'
-import { next } from 'dom7';
 
 
-
+// 接收父组件传递的方法
+let emits = defineEmits([
+  'on-preview', 'on-remove', 'on-success', 'on-error',
+  'on-progress', 'on_change', 'before-upload', 'before-remove', 'on-exceed'
+])
+// 接收父组件传递的参数
 let props = defineProps({
   // 表单的配置项
   options: {
@@ -91,13 +101,9 @@ let props = defineProps({
   }
 })
 
-let { options, formConfig, httpRequest } = toRefs(props)
+let { formConfig, httpRequest } = toRefs(props)
+// 定义表单参数
 let formData = ref({} as any)
-let emits = defineEmits([
-  'on-preview', 'on-remove', 'on-success', 'on-error',
-  'on-progress', 'on_change', 'before-upload', 'before-remove', 'on-exceed'
-])
-
 let rules = ref<any>(null)
 let edit = ref()
 
@@ -107,25 +113,25 @@ let form = ref<FormInstance | null>()
 let initForm = () => {
   if (props.options && props.options.length) {
     let r: any = {}
-    props.options.map((item: FormOptions) => {
-      if (item.children && !item.childLabel && !item.childValue) {
-        item.childLabel = 'label'
-        item.childValue = 'value'
+    props.options.forEach((item) => {
+      if (item.selectList && !item.listLabel && !item.listValue) {
+        item.listLabel = 'label'
+        item.listValue = 'value'
       }
-      r[item.prop!] = item.rules
+      r[item.prop] = item.rules
       // 初始化富文本编辑器
       if (item.type === 'editor') {
         nextTick(() => {
           if (document.getElementById('editor') && document.getElementById('toolbar')) {
             const editorConfig: Partial<IEditorConfig> = {}
-            editorConfig.placeholder = item.placeholder!
+            editorConfig.placeholder = item.placeholder
             editorConfig.onChange = (editor: IDomEditor) => {
               // 当编辑器选区、内容变化时，即触发
               // console.log('content', editor.children)
               // console.log('html', editor.getHtml())
               // console.log('text', editor.getText());
 
-              formData!.value![item.prop!] = editor.getHtml()
+              formData.value[item.prop] = editor.getHtml()
             }
 
             // 创建编辑器
@@ -145,12 +151,14 @@ let initForm = () => {
         })
       }
     })
-
     rules.value = deepClone(r)
   }
 }
-
-
+// 组件获取父组件异步数据的方法
+let updateOptions = (value: selectValue[], prop: string) => {
+  let index = props.options.findIndex(item => item.prop == prop)
+  props.options[index].selectList = value
+}
 
 // 组件重写表单重置的方法
 let resetFields = () => {
@@ -170,23 +178,25 @@ let validate = () => {
 
 // 获取表单数据
 let getFormData = () => {
-  return formData!.value
+  return formData.value
 }
 
 
 // 使用vue3的新api 分发方法，它替代了之前的$children方法
 defineExpose({
+  updateOptions,
   resetFields,
   validate,
   getFormData
 })
 
 // 监听父组件传递过来的options、formData
-watchEffect(() => {
-  formData!.value = props.formData
+watch(() => props.formData, (val) => {
+  formData.value = val
+}, { immediate: true, deep: true })
+watch(() => props.options, () => {
   initForm()
-})
-
+}, { immediate: true, deep: true })
 // 上传组件的所有方法
 let onPreview = (file: UploadFile) => {
   emits('on-preview', file)
@@ -198,8 +208,8 @@ let onRemove = (file: UploadFile, fileList: UploadFiles) => {
 
 let onSuccess = (response: any, file: UploadFile, fileList: UploadFiles) => {
   // 上传图片成功， 给表单上传项赋值
-  let uploadItem = props.options.find(item => item.type === 'upload')!
-  formData!.value![uploadItem.prop!] = { response, file, fileList }
+  let uploadItem = props.options.find(item => item.type === 'upload')
+  formData.value[uploadItem!.prop] = { response, file, fileList }
   emits('on-success', { response, file, fileList })
 }
 

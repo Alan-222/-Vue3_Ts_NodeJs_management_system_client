@@ -34,20 +34,20 @@
     </el-table-column>
     <!-- 展示数据 -->
     <el-table-column v-for="(item, index) in tableColumn" :key="index" :prop="item.prop" :label="item.label"
-      :align="item.align" :show-overflow-tooltip="item.ellipsis" v-bind="tableColumnConfig">
+      :align="item.align" :show-overflow-tooltip="item.ellipsis" v-bind="{ ...tableColumnConfig, ...item.attrs }">
       <template v-if="item.slot" #default="scope">
         <slot :name="item.prop" :row="scope.row" :index="scope.$index"></slot>
       </template>
       <template v-else v-slot:default="scope">
-        <div v-if="item.dictCode">
+        <span v-if="item.dictCode">
           {{ filterStatus(scope.row[item.dictCode],dict[item.dictCode]) }}
-        </div>
-        <div v-else-if="item.format">
+        </span>
+        <span v-else-if="item.format">
           {{ item.format(scope.row) }}
-        </div>
-        <div v-else>
+        </span>
+        <span v-else>
           {{ scope.row[item.prop] }}
-        </div>
+        </span>
       </template>
     </el-table-column>
     <!-- 操作列：由于各行操作按钮可能并不相同，加上要权限控制，下面只放置一个插槽 -->
@@ -167,7 +167,7 @@ onMounted(() => {
 })
 
 const filterStatus = computed(() => {
-  return function (value: number, array: Array<any>, code = 'code', name = 'name') {
+  return function (value: number, array: Array<any>, code = 'value', name = 'label') {
     if (!value && value !== 0) { // 要把0摘出来，一般0都是正常的数据，所以不能只用  !value
       return ''
     }

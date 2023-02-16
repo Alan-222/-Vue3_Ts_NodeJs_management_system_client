@@ -30,6 +30,10 @@ export interface tableColumn {
    * 字典对象
    */
   dictCode?: string;
+  /**
+   * 额外配置
+   */
+  attrs?: Object;
 }
 
 /**

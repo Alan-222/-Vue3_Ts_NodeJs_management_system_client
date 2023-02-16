@@ -6,10 +6,12 @@ interface Callback {
   (isValid: boolean, invalidFields?: ValidateFieldsError): void;
 }
 
-// 表单每一项的配置选项
+/*
+ * 表单每一项的配置选项
+ */
 export interface FormOptions {
   // 表单项显示的元素
-  type?:
+  type:
     | 'cascader'
     | 'checkbox'
     | 'checkbox-group'
@@ -32,14 +34,19 @@ export interface FormOptions {
     | 'upload'
     | 'editor';
 
-  value?: any; // 表单项的值
-  label?: string; // 表单项label
+  value: any; // 表单项的值
+  label: string; // 表单项label
   colCount?: number; // 此表单项所在列的所拥有表单项数，例如2项占据1/2列，1项占据全列
-  prop?: string; // 表单项的标识
+  prop: string; // 表单项的标识
   rules?: RuleItem[]; // 表单项验证规则
   placeholder?: string; // 占位符
   // 表单项显示标识，当formConfig.showStatus为此字段时显示
   show?: string;
+  // 表单项的选择列表
+  selectList: selectValue[];
+  // 表单项选择列表的属性键值
+  listLabel: 'label';
+  listValue: 'value';
   // 表单元素特有的属性
   attrs?: {
     clearable?: boolean;
@@ -49,11 +56,6 @@ export interface FormOptions {
     style?: CSSProperties;
     [propName: string]: any;
   };
-  // 表单项的子元素
-  children?: FormOptions[];
-  // 表单项子元素的属性键值
-  childLabel?: string;
-  childValue?: string;
   // 处理上传组件的属性和方法
   uploadAttrs?: {
     action: string;
@@ -74,15 +76,27 @@ export interface FormOptions {
   };
 }
 
+/**
+ * 表单额外配置
+ */
 export interface formConfig {
   colSpan: number; //
   showStatus?: string;
+}
+/**
+ * 选择数据类型
+ */
+export interface selectValue {
+  label: string;
+  value: number;
 }
 
 export interface ValidateFieldCallback {
   (message: string, invalidFields?: ValidateFieldsError): void;
 }
-
+/**
+ * 表单实例
+ */
 export interface FormInstance {
   registerLabelWidth(width: number, oldWidth: number): void;
   deregisterLabelWidth(width: number): void;

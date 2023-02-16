@@ -30,7 +30,7 @@
       </template>
     </dataTable>
     <!-- 表单弹窗 -->
-    <el-dialog :title="dialog.title" v-model="dialog.visible" width="500px" destroy-on-close>
+    <el-dialog :title="dialog.title" v-model="dialog.visible" width="500px" @close="cancel">
       <L-form v-model:formData="state.formData" :options="formOptions" label-width="80px" ref="dataFormRef">
         <template #action="{ form, model }">
           <div slot="footer" class="dialog-footer">
@@ -80,7 +80,7 @@ export default {
 
 <script setup lang="ts">
 import dataTable from "@/components/table/table.vue"
-import { nextTick, reactive, ref, toRefs } from 'vue';
+import { nextTick, reactive, ref, toRefs, onMounted } from 'vue';
 import {
   listRolePages,
   updateRole,
@@ -95,10 +95,16 @@ import { listMenuOptions } from '@/utils/api/user/menu';
 
 import { FormInstance, ElForm, ElMessage, ElMessageBox, ElTree } from 'element-plus';
 import { Search, CirclePlus, Refresh, Remove } from '@element-plus/icons-vue';
-import { FormOptions } from '@/components/form/src/types/types'
-import { fromPairs } from "lodash";
-import form from "@/components/form";
+import { dictAssignment } from "@/utils/dict";
 
+/**
+ * 获取字典值
+ */
+onMounted(() => {
+  dictAssignment('status', tableState.dict)
+  dictAssignment('status', tableState.searchConfig)
+  dictAssignment('status', state.formOptions)
+})
 /**
  * 表格参数
  */
@@ -123,10 +129,7 @@ const tableState = reactive({
     align: "center"
   },
   dict: {
-    status: [
-      { code: 0, name: '停用' },
-      { code: 1, name: '启用' }
-    ]
+    status: []
   },
   searchConfig: [
     { type: 'input', prop: 'role_name', label: "角色名称" },
@@ -134,12 +137,9 @@ const tableState = reactive({
       type: 'select',
       prop: 'status',
       label: '状态',
-      selectList: [
-        { code: 0, name: '停用' },
-        { code: 1, name: '启用' }
-      ],
-      listLabel: 'name',
-      listValue: 'code',
+      selectList: [],
+      listLabel: 'label',
+      listValue: 'value',
     }
   ],
   searchReset: {
@@ -170,10 +170,6 @@ const state = reactive({
     remark: '',
     status: 1
   } as RoleFormData,
-  rules: {
-    role_name: [{ required: true, message: '请输入角色名称', trigger: 'blur' }],
-    remark: [{ required: true, message: '请输入角色描述', trigger: 'blur' }]
-  },
   resourceDialogVisible: false,
   resourceOptions: [] as Resource[],
   btnPerms: {} as any,
@@ -232,18 +228,7 @@ const state = reactive({
           trigger: 'change'
         }
       ],
-      children: [
-        {
-          type: 'radio',
-          label: '正常',
-          value: 1
-        },
-        {
-          type: 'radio',
-          label: "停用",
-          value: 0
-        }
-      ]
+      selectList: []
     },
   ]
 });

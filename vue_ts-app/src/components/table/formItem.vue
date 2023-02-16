@@ -52,7 +52,7 @@ const props = defineProps({
 const { itemOptions } = toRefs(props)
 
 // 双向绑定数据值
-const currentVal = computed({
+const currentVal: any = computed({
   get() {
     return props.modelValue
   },

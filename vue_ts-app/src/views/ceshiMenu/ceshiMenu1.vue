@@ -42,7 +42,7 @@ let formData = ref({
   date1: '',
   desc: ''
 })
-let options: FormOptions[] = [
+let options = ref([
   {
     type: 'input',
     value: '',
@@ -107,7 +107,7 @@ let options: FormOptions[] = [
         trigger: 'blur'
       }
     ],
-    children: [
+    selectList: [
       {
         type: 'option',
         label: '经理',
@@ -137,7 +137,7 @@ let options: FormOptions[] = [
         trigger: 'blur'
       }
     ],
-    children: [
+    selectList: [
       {
         type: 'checkbox',
         label: '足球',
@@ -167,7 +167,7 @@ let options: FormOptions[] = [
         trigger: 'blur'
       }
     ],
-    children: [
+    selectList: [
       {
         type: 'radio',
         label: '男',
@@ -213,7 +213,7 @@ let options: FormOptions[] = [
         {
           value: 'guide',
           label: 'Guide',
-          children: [
+          selectList: [
             {
               value: 'disciplines',
               label: 'Disciplines',
@@ -523,7 +523,7 @@ let options: FormOptions[] = [
       }
     ]
   }
-]
+])
 
 let formConfig = ref({
   colSpan: 12
@@ -533,7 +533,7 @@ let submitForm = (scope: Scope) => {
     if (valid) {
       console.log(scope.model);
       ElMessage.success('提交成功')
-      // resetForm()
+      resetForm()
     } else {
       ElMessage.error('表单填写错误')
     }

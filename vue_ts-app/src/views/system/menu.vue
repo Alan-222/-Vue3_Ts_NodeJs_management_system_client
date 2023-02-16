@@ -100,8 +100,7 @@
 
         <el-form-item label="状态" v-if="formData.type !== 'B'">
           <el-radio-group v-model="formData.hidden">
-            <el-radio :label="0">显示</el-radio>
-            <el-radio :label="1">隐藏</el-radio>
+            <el-radio v-for="item in dict.hidden" :label="item.value">{{ item.label }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -143,8 +142,14 @@ import {
 
 import SvgIcon from '@/components/SvgIcon/index.vue';
 import IconSelect from '@/components/IconSelect/index.vue';
+import { dictAssignment } from '@/utils/dict';
 
-
+/**
+ * 获取字典
+ */
+onMounted(() => {
+  dictAssignment('hidden', tableState.dict)
+})
 /**
  * 表格参数
  */
@@ -155,7 +160,7 @@ const tableState = reactive({
     { prop: 'name', label: '路由名称' },
     { prop: 'type', label: '菜单类型', slot: true },
     { prop: 'permission', label: '权限标识' },
-    { prop: 'hidden', label: '状态', dictCode: 'status', slot: true },
+    { prop: 'hidden', label: '状态', dictCode: 'hidden', slot: true },
     { prop: 'sort', label: '排序' },
     { prop: 'create_time', label: '创建时间' },
     { prop: 'update_time', label: '更新时间' },
@@ -169,10 +174,7 @@ const tableState = reactive({
     align: "center"
   },
   dict: {
-    hidden: [
-      { code: 0, name: '显示' },
-      { code: 1, name: '隐藏' }
-    ]
+    hidden: [] as Option[]
   },
   searchConfig: [
     { type: 'input', prop: 'title', label: "菜单标题" },
@@ -215,7 +217,7 @@ const state = reactive({
       { required: true, message: '请输入组件完整路径', trigger: 'blur' }
     ]
   },
-  currentRow: undefined,
+  currentRow: {} as MenuItem,
   // Icon选择器显示状态
   iconSelectVisible: false,
   cacheData: {
@@ -275,7 +277,7 @@ async function handleAdd(row: any) {
   } else {
     // 工具栏新增
 
-    if (state.currentRow) {
+    if (state.currentRow && state.currentRow.type !== 'B') {
       // 选择行
       formData.value.parent_id = (state.currentRow as any).menu_id;
     } else {

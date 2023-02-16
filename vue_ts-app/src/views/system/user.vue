@@ -30,10 +30,10 @@
     </dataTable>
 
     <!-- 新增、编辑、详情弹窗 -->
-    <el-dialog v-model="dialogFormVisible" :title="title" width="25%">
+    <el-dialog v-model="dialogFormVisible" :title="title" width="25%" @close="dialogClose">
       <!-- 新增及编辑弹窗表单 -->
-      <L-form v-model:formData="form" :options="formOptions" :formConfig="formConfig" label-width="6em"
-        ref="editFormRef">
+      <L-form v-model:formData="state.form" :options="formOptions" :formConfig="formConfig" label-width="6em"
+        ref="dataFormRef">
         <template #action="{ form, model }">
           <div slot="footer" class="dialog-footer">
             <el-button type="primary" @click="submitForm(form)" :loading="buttonLoading">保存</el-button>
@@ -54,19 +54,26 @@ export default { name: 'User' };
 <script setup lang="ts">
 import dataTable from '@/components/table/table.vue'
 import { CirclePlus, Refresh, Search, Remove } from '@element-plus/icons-vue'
-import { ref, reactive, onMounted, computed, toRefs, nextTick } from 'vue'
+import { ref, watch, reactive, onMounted, computed, toRefs, nextTick } from 'vue'
 import { ElTable, ElMessageBox, ElMessage, FormInstance } from 'element-plus'
 import { listUser, addUser, updateUser, updatePwd, delUser, getUserInfoById } from '@/utils/API/user/user'
 import { allRole } from '@/utils/API/user/role'
 import { useStore } from '@/store'
+import { dictAssignment } from '@/utils/dict'
+
+
 /**
- * 调用获取用户列表
+ * 调用获取用户弹窗内容
  */
 onMounted(() => {
   // 获取角色
   getRoles()
+  dictAssignment('status', state.formOptions)
+  dictAssignment('status', tableState.searchConfig)
+  dictAssignment('status', tableState.dict)
 })
-
+// 获取vuex
+const store = useStore()
 /**
  * 表格参数
  */
@@ -91,10 +98,7 @@ const tableState = reactive({
     align: "center"
   },
   dict: {
-    status: [
-      { code: 0, name: '停用' },
-      { code: 1, name: '启用' }
-    ]
+    status: []
   },
   searchConfig: [
     { type: 'input', prop: 'username', label: "用户账号" },
@@ -102,12 +106,9 @@ const tableState = reactive({
       type: 'select',
       prop: 'status',
       label: '状态',
-      selectList: [
-        { code: 0, name: '停用' },
-        { code: 1, name: '启用' }
-      ],
-      listLabel: 'name',
-      listValue: 'code',
+      selectList: [],
+      listLabel: 'label',
+      listValue: 'value',
     }
   ],
   searchReset: {
@@ -119,8 +120,7 @@ const tableState = reactive({
   }
 })
 const { tableColumn, tableColumnConfig, otherConfig, setupConfig, dict, searchConfig, searchReset, searchBtnConfig } = toRefs(tableState)
-// 获取vuex
-const store = useStore()
+
 /**
  * 获取用户列表
  */
@@ -137,7 +137,6 @@ const roles = ref([] as RoleItem[])
 const getRoles = () => {
   allRole().then(res => {
     roles.value = res.data.map((item: RoleItem) => {
-      item.type = 'option'
       return item
     })
   })
@@ -170,23 +169,35 @@ const validatePwd = (rule: any, value: any, callback: any) => {
 const validateRePwd = (rule: any, value: any, callback: any) => {
   if (value === '') {
     callback(new Error('请再次输入密码'))
-  } else if (value !== form.password) {
+  } else if (value !== state.form.password) {
     callback(new Error('两次输入密码不一致!'))
   } else {
     callback()
   }
 }
+
 /**
  * 新增编辑及修改密码弹窗
  */
 // 新增编辑及修改密码弹窗变量及方法
+const dataFormRef = ref()
 const state = reactive({
   title: '' as string,
-  roles: [] as RoleItem[],
+  // roles: [] as RoleItem[],
   dialogFormVisible: false as boolean,
   formConfig: {
     showStatus: ''
   },
+  form: {
+    user_id: 0,
+    action: '',
+    username: '',
+    old_password: '',
+    password: '',
+    repassword: '',
+    status: 1,
+    role_ids: []
+  } as userEditForm,
   formOptions: [
     {
       type: 'input',
@@ -207,13 +218,13 @@ const state = reactive({
     },
     {
       type: 'select',
-      value: '',
+      value: [],
       label: '角色',
       placeholder: "请选择角色",
       prop: 'role_ids',
-      childLabel: 'role_name',
-      childValue: 'role_id',
-      children: roles,
+      listLabel: 'role_name',
+      listValue: 'role_id',
+      selectList: [],
       rules: [
         {
           required: true,
@@ -270,7 +281,7 @@ const state = reactive({
     },
     {
       type: 'radio-group',
-      value: 0,
+      value: 1,
       prop: 'status',
       label: '状态',
       rules: [
@@ -280,37 +291,19 @@ const state = reactive({
           trigger: 'change'
         }
       ],
-      children: [
-        {
-          type: 'radio',
-          label: '正常',
-          value: 1
-        },
-        {
-          type: 'radio',
-          label: "停用",
-          value: 0
-        }
-      ],
+      selectList: [],
       show: ['add', 'edit']
     },
   ]
 })
-const { title, dialogFormVisible, formOptions, formConfig } = toRefs(state)
-const editFormRef = ref()
+const { title, form, dialogFormVisible, formOptions, formConfig } = toRefs(state)
 
-
-const form = reactive<userEditForm>({
-  user_id: 0,
-  action: '',
-  username: '',
-  old_password: '',
-  password: '',
-  repassword: '',
-  status: 1,
-  role_ids: []
+// 当弹窗实例出现，为角色选择列表赋值
+watch(dataFormRef, () => {
+  if (dataFormRef.value) {
+    dataFormRef.value.updateOptions(roles.value, 'role_ids')
+  }
 })
-
 const buttonLoading = ref(false)
 
 
@@ -320,15 +313,17 @@ const dialogClose = () => {
 }
 
 const resetFrom = () => {
-  form.action = ''
-  form.username = ''
-  form.user_id = 0
-  form.old_password = ''
-  form.password = ''
-  form.repassword = ''
-  form.role_ids = []
-  form.status = 1
-  editFormRef.value.resetFields()
+  form.value = {
+    action: '',
+    username: '',
+    user_id: 0,
+    status: 1,
+    old_password: '',
+    password: '',
+    repassword: '',
+    role_ids: [],
+  }
+  dataFormRef.value.resetFields()
 }
 const handleAdd = () => {
   title.value = "添加用户"
@@ -337,20 +332,20 @@ const handleAdd = () => {
 }
 const handleReset = (user_id: number) => {
   getUserInfoById(user_id).then(res => {
-    form.user_id = res.data.user_id
+    state.form.user_id = res.data.user_id
     state.formConfig.showStatus = 'edit-pwd'
-    form.action = 'edit-pwd'
+    state.form.action = 'edit-pwd'
     dialogFormVisible.value = true
     title.value = "重置密码"
   })
 }
 const handleEdit = (user_id: number) => {
   getUserInfoById(user_id).then(res => {
-    form.user_id = res.data.user_id
-    form.username = res.data.username
-    form.status = res.data.status
+    state.form.user_id = res.data.user_id
+    state.form.username = res.data.username
+    state.form.status = res.data.status
     state.formConfig.showStatus = 'edit'
-    form.role_ids = res.data.roles.map((item: RoleItem) => {
+    state.form.role_ids = res.data.roles.map((item: RoleItem) => {
       if (item.role_id) {
         return item.role_id
       }
@@ -401,11 +396,9 @@ const submitForm = (formEl: FormInstance | undefined) => {
   formEl.validate((valid, fields) => {
     if (valid) {
       buttonLoading.value = true
-      if (form.action === 'edit-pwd') {
-        updatePwd({ user_id: form.user_id, old_password: form.old_password, password: form.password, repassword: form.repassword }).then(res => {
-          console.log(form.user_id, store.state.user.user_id);
-
-          if (form.user_id === store.state.user.user_id) {
+      if (state.form.action === 'edit-pwd') {
+        updatePwd({ user_id: state.form.user_id, old_password: state.form.old_password, password: state.form.password, repassword: state.form.repassword }).then(res => {
+          if (state.form.user_id === store.state.user.user_id) {
             reLogin()
           }
           ElMessage.success("重置密码成功")
@@ -418,8 +411,8 @@ const submitForm = (formEl: FormInstance | undefined) => {
           })
         return false;
       }
-      if (form.user_id) {
-        updateUser(form)
+      if (state.form.user_id) {
+        updateUser(state.form)
           .then((res) => {
             ElMessage.success('修改用户成功')
             // 关闭弹窗
@@ -431,7 +424,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
             buttonLoading.value = false
           })
       } else {
-        addUser(form)
+        addUser(state.form)
           .then((res) => {
             ElMessage.success('新增用户成功')
             // 关闭弹窗
@@ -446,5 +439,6 @@ const submitForm = (formEl: FormInstance | undefined) => {
     }
   })
 }
+
 
 </script>

@@ -37,6 +37,11 @@ export default defineConfig({
         target: 'http://127.0.0.1:9999',
         changeOrigin: true,
         rewrite: (path) => path.replace('//user$/', '')
+      },
+      '/dict': {
+        target: 'http://127.0.0.1:9999',
+        changeOrigin: true,
+        rewrite: (path) => path.replace('//dict$/', '')
       }
     }
   }
