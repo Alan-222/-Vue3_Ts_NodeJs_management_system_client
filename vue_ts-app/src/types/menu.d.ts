@@ -22,7 +22,7 @@ declare interface MenuItem {
   component: string | null;
   redirect: string | null;
   sort: number;
-  hidden: 0 | 1;
+  hidden: '0' | '1';
   children: MenuItem[];
   permission: string | null;
 }
@@ -50,7 +50,7 @@ declare interface MenuFormData {
   /**
    * 菜单是否隐藏(1:是;0:否;)
    */
-  hidden: number;
+  hidden: '0' | '1';
   icon?: string;
   /**
    * 排序

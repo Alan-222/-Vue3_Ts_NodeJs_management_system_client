@@ -19,7 +19,7 @@
       </template>
       <!-- 状态插槽 -->
       <template #hidden="{ row, index }">
-        <el-tag v-if="row.hidden === 0" type="success">显示</el-tag>
+        <el-tag v-if="row.hidden === '0'" type="success">显示</el-tag>
         <el-tag v-else type="info">隐藏</el-tag>
       </template>
       <!-- 批量操作按钮插槽 -->
@@ -42,8 +42,8 @@
     <el-dialog :title="dialog.title" v-model="dialog.visible" @close="cancel" width="750px">
       <el-form ref="dataFormRef" :model="formData" :rules="rules" label-width="100px">
         <el-form-item label="父级菜单" prop="parent_id">
-          <el-tree-select v-model="formData.parent_id" placeholder="选择上级菜单" :data="menuOptions" filterable
-            check-strictly :render-after-expand="false" />
+          <el-tree-select v-model="formData.parent_id" placeholder="选择上级菜单" :data="menuOptions" filterable check-strictly
+            :render-after-expand="false" />
         </el-form-item>
 
         <el-form-item label="菜单标题" prop="title">
@@ -52,9 +52,7 @@
 
         <el-form-item label="菜单类型" prop="type">
           <el-radio-group v-model="formData.type" @change="handleMenuTypeChange">
-            <el-radio label="C">目录</el-radio>
-            <el-radio label="M">菜单</el-radio>
-            <el-radio label="B">按钮</el-radio>
+            <el-radio v-for="item in dict.authType" :label="item.value">{{ item.label }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
@@ -149,6 +147,7 @@ import { dictAssignment } from '@/utils/dict';
  */
 onMounted(() => {
   dictAssignment('hidden', tableState.dict)
+  dictAssignment('authType', tableState.dict)
 })
 /**
  * 表格参数
@@ -174,7 +173,8 @@ const tableState = reactive({
     align: "center"
   },
   dict: {
-    hidden: [] as Option[]
+    hidden: [] as Option[],
+    authType: [] as Option[]
   },
   searchConfig: [
     { type: 'input', prop: 'title', label: "菜单标题" },
@@ -199,7 +199,7 @@ const state = reactive({
     parent_id: 0,
     title: '',
     name: undefined,
-    hidden: 0,
+    hidden: '0',
     sort: 1,
     component: undefined,
     path: undefined,
@@ -385,7 +385,7 @@ function reset() {
   formData.value.parent_id = 0
   formData.value.title = ''
   formData.value.name = undefined
-  formData.value.hidden = 0
+  formData.value.hidden = '0'
   formData.value.component = undefined
   formData.value.path = undefined
   formData.value.permission = undefined

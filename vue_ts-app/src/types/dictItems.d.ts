@@ -9,5 +9,5 @@ declare interface DictItemFormData {
   item_value: number;
   description: string;
   sort_order: number;
-  status: 0 | 1;
+  status: '0' | '1';
 }

@@ -8,7 +8,7 @@
       :searchBtnConfig="searchBtnConfig" border>
       <!-- 状态项插槽 -->
       <template #status="{ row, index }">
-        <el-tag v-if="row.status === 1" type="success">启用</el-tag>
+        <el-tag v-if="row.status === '1'" type="success">启用</el-tag>
         <el-tag v-else type="info">禁用</el-tag>
       </template>
       <!-- 批量操作按钮插槽 -->
@@ -168,7 +168,7 @@ const state = reactive({
   formData: {
     role_name: '',
     remark: '',
-    status: 1
+    status: '1'
   } as RoleFormData,
   resourceDialogVisible: false,
   resourceOptions: [] as Resource[],
@@ -218,7 +218,7 @@ const state = reactive({
     },
     {
       type: 'radio-group',
-      value: 1,
+      value: '1',
       prop: 'status',
       label: '状态',
       rules: [
@@ -253,7 +253,7 @@ function resetForm() {
   formData.value.role_id = 0
   formData.value.role_name = ''
   formData.value.remark = ''
-  formData.value.status = 1
+  formData.value.status = '1'
   dataFormRef.value.resetFields()
 }
 

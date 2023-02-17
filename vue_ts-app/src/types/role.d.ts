@@ -15,7 +15,7 @@ declare interface RoleItem {
   role_id: number;
   role_name: string;
   remark: string;
-  status: number;
+  status: '1' | '0';
   create_time: string;
   update_time: string | undefined;
 }
@@ -27,7 +27,7 @@ declare interface RoleFormData {
   role_id: number | undefined;
   role_name: string;
   remark: string;
-  status: number;
+  status: '1' | '0';
 }
 
 /**

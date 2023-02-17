@@ -22,7 +22,7 @@ export function filterAsyncRoutes(routes: any) {
       children: route.children || undefined
     };
     tmp.meta.title = route.title;
-    tmp.meta.hidden = !!route.hidden;
+    tmp.meta.hidden = !!Number(route.hidden);
     if (route.icon) {
       tmp.meta.icon = route.icon;
     }

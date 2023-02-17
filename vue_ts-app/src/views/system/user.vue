@@ -44,7 +44,6 @@
 
     </el-dialog>
   </div>
-
 </template>
 
 <script lang="ts">
@@ -195,7 +194,7 @@ const state = reactive({
     old_password: '',
     password: '',
     repassword: '',
-    status: 1,
+    status: '1',
     role_ids: []
   } as userEditForm,
   formOptions: [
@@ -281,7 +280,7 @@ const state = reactive({
     },
     {
       type: 'radio-group',
-      value: 1,
+      value: '1',
       prop: 'status',
       label: '状态',
       rules: [
@@ -317,7 +316,7 @@ const resetFrom = () => {
     action: '',
     username: '',
     user_id: 0,
-    status: 1,
+    status: '1',
     old_password: '',
     password: '',
     repassword: '',

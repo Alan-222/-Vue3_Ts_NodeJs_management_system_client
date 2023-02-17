@@ -12,7 +12,7 @@
       </template>
       <!-- 状态插槽 -->
       <template #status="{ row, index }">
-        <el-tag v-if="row.status === 1" type="success">启用</el-tag>
+        <el-tag v-if="row.status === '1'" type="success">启用</el-tag>
         <el-tag v-else type="info">禁用</el-tag>
       </template>
       <!-- 批量操作按钮插槽 -->
@@ -153,7 +153,7 @@ const state = reactive({
     dict_name: '',
     dict_code: '',
     description: '',
-    status: 1
+    status: '1'
   } as DictFormData,
   ItemFormData: {
     id: undefined,
@@ -162,7 +162,7 @@ const state = reactive({
     item_value: 0,
     description: '',
     sort_order: 0,
-    status: 1
+    status: '1'
   } as DictItemFormData,
   formOptions: [
     {
@@ -197,7 +197,7 @@ const state = reactive({
     },
     {
       type: 'radio-group',
-      value: 1,
+      value: '1',
       prop: 'status',
       label: '状态',
       rules: [
@@ -227,7 +227,7 @@ const state = reactive({
       ]
     },
     {
-      type: 'input-number',
+      type: 'input',
       value: 0,
       label: '字典项键',
       prop: 'item_value',
@@ -256,7 +256,7 @@ const state = reactive({
     },
     {
       type: 'radio-group',
-      value: 1,
+      value: '1',
       prop: 'status',
       label: '状态',
       rules: [
@@ -436,7 +436,7 @@ function reset() {
   formData.value.dict_name = ''
   formData.value.dict_code = ''
   formData.value.description = ''
-  formData.value.status = 1
+  formData.value.status = '1'
 }
 /**
  * 重置字典项表单
@@ -447,6 +447,6 @@ function resetItem() {
   ItemFormData.value.item_value = 0
   ItemFormData.value.description = ''
   ItemFormData.value.sort_order = 0
-  ItemFormData.value.status = 1
+  ItemFormData.value.status = '1'
 }
 </script>
